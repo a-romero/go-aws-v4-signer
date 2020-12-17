@@ -1,0 +1,7 @@
+Changelog
+=========
+
+v0.1 (2019-10-02)
+
+* Basic pricing engine
+* Takes input from Pricing DynamoDB table
