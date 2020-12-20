@@ -76,8 +76,20 @@ func signerRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 		errorLogger.Printf("%s", err)
 		return clientError(http.StatusBadRequest, err)
 	}
+	accessTokenToSign := req.QueryStringParameters["accessToken"]
+	if accessTokenToSign == "" {
+		err := fmt.Errorf("no accessToken provided in request")
+		errorLogger.Printf("%s", err)
+		return clientError(http.StatusBadRequest, err)
+	}
+	userAgentToSign := req.QueryStringParameters["userAgent"]
+	if userAgentToSign == "" {
+		err := fmt.Errorf("no userAgent provided in request")
+		errorLogger.Printf("%s", err)
+		return clientError(http.StatusBadRequest, err)
+	}
 
-	authorizationHeader := processSignature(*cfg, hostToSign, regionToSign, serviceToSign, pathToSign, paramsToSign)
+	authorizationHeader := processSignature(*cfg, hostToSign, regionToSign, serviceToSign, pathToSign, paramsToSign, accessTokenToSign, userAgentToSign)
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusOK,
@@ -85,14 +97,14 @@ func signerRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyRes
 	}, nil
 }
 
-func processSignature(cfg Configuration, hostToSign, regionToSign, serviceToSign, pathToSign, paramsToSign string) string {
+func processSignature(cfg Configuration, hostToSign, regionToSign, serviceToSign, pathToSign, paramsToSign, accessTokenToSign, userAgentToSign string) string {
 
 	currentTime := time.Now()
 	dateStamp := fmt.Sprintf(currentTime.Format("20060102"))
 	amzdate := fmt.Sprintf(currentTime.Format("20060102T150405Z"))
 
-	canonicalHeaders := fmt.Sprintf("host:%s\nx-amz-date:%s\n", hostToSign, amzdate)
-	signedHeaders := "host;x-amz-date"
+	canonicalHeaders := fmt.Sprintf("host:%s\nuser-agent:%s\nx-amz-access-token:%s\nx-amz-date:%s\n", hostToSign, userAgentToSign, accessTokenToSign, amzdate)
+	signedHeaders := "host;user-agent;x-amz-access-token;x-amz-date"
 
 	hasherPayload := sha256.New()
 	hasherPayload.Write([]byte(""))
@@ -109,7 +121,6 @@ func processSignature(cfg Configuration, hostToSign, regionToSign, serviceToSign
 	signature.Write([]byte(stringToSign))
 
 	authorizationHeader := fmt.Sprintf("%s Credential=%s/%s, SignedHeaders=%s, Signature=%s", SIGNING_ALGO, cfg.AccessKey, credScope, signedHeaders, hex.EncodeToString(signature.Sum(nil)))
-	// headers ToDo
 
 	log.Printf("Signature is: %s", authorizationHeader)
 
@@ -143,6 +154,7 @@ func getConfig() (*Configuration, error) {
 	if err := json.Unmarshal(data, &cfg); err != nil {
 		return nil, err
 	}
+	fmt.Printf("Using access key: %s\n", cfg.AccessKey)
 	return &cfg, nil
 }
 
