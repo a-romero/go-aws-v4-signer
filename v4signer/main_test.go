@@ -25,8 +25,10 @@ func TestProcessSignature(t *testing.T) {
 	testServiceToSign := "execute-api"
 	testPathToSign := "vendor/orders/v1/purchaseOrders"
 	testParamsToSign := "?limit={example}&createdAfter={example}&createdBefore={example}&sortOrder={example}&nextToken={example}&includeDetails={example}"
+	testAccessTokenToSign := "BLAHBLAHBLAH"
+	testUserAgentToSign := "User-Agent123"
 
-	testAuthHeaders := processSignature(testCfg, testHostToSign, testRegionToSign, testServiceToSign, testPathToSign, testParamsToSign)
+	testAuthHeaders := processSignature(testCfg, testHostToSign, testRegionToSign, testServiceToSign, testPathToSign, testParamsToSign, testAccessTokenToSign, testUserAgentToSign)
 
 	log.Printf("Signature is: %s", testAuthHeaders)
 }
